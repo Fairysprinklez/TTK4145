@@ -1,0 +1,57 @@
+Exercise 1:
+
+##JUST FOR THINKING ABOUT##
+ - What if the software controlling one of the elvators suddeny crashes?
+ - What if it doesn't crash, but hangs?
+ - What if a message between machines is lost?
+ - What if the network cable is suddenly disconnected? Then re-connected?
+ - What if a user of the system is being a troll?
+ - What if the elevator car never arrives at its destination?
+
+
+Source control and build tools:
+using git and github for source control.
+primarily using ubuntu for developing and VMing ubuntu if using windows
+
+
+3: Reasons for concurrency and parallelism
+------------------------------------------
+
+(Remember to use all the resources at your disposal. Asking the internet isn't a form of "cheating", it's a way of learning.)
+
+ - What is concurrency? What is parallelism? What's the difference?
+	Concurrency: When execution of sub problems in an algorithm is order-independent. allows the use of multiple cores
+	Parallelism: When a program actually is executed in parallell, multhithreading and stuff like that.
+ - Why have machines become increasingly multicore in the past decade?
+	Because of Moore's law and we can't continue to increase transistor density
+ - What kinds of problems motivates the need for concurrent execution? (Or phrased differently: What problems do concurrency help in solving?)
+	- Can assure us that there are no race-conditions present
+ - Does creating concurrent programs make the programmer's life easier? Harder? Maybe both? (Come back to this after you have worked on part 4 of this exercise)
+	Pain in the ass to do, but you get great satisfaction, and can be sure that you didn't mess up something vital.
+
+<!-- -->
+ - What are the differences between processes, threads, green threads, and coroutines?
+	Coroutines are a form of sequential processing: only one is executing at any given time
+	(just like subroutines AKA procedures AKA functions -- they just pass the baton among each other more fluidly.
+	Threads are (at least conceptually) a form of concurrent processing:
+	multiple threads may be executing at any given time. (Traditionally, on single-CPU, single-core machines, 
+	that concurrency was simulated with some help from the OS -- nowadays, since so many machines are multi-CPU and/or multi-core, 
+	threads will de facto be executing simulaneously, not just "conceptually";
+	process: instance of a computer program that is being executed
+	green thread: are actually coroutines. In java they do not run in parallell.
+
+ - Which one of these do `pthread_create()` (C/POSIX), `threading.Thread()` (Python), `go` (Go) create?
+	threading.thread: thread
+	go: spawning coroutine
+	pthread_create(): thread
+ - How does pythons Global Interpreter Lock (GIL) influence the way a python Thread behaves?
+	https://wiki.python.org/moin/GlobalInterpreterLock
+	not thread-safe mem management in python. The GIL sort of restricts multithreading in python.
+ - With this in mind: What is the workaround for the GIL (Hint: it's another module)?
+	using multiprocessing instead of multithread 
+ - What does `func GOMAXPROCS(n int) int` change?
+	the GOMAXPROCS variable limits the number of operating system threads that can execute user-level Go code simultaneously. 
+	There is no limit to the number of threads that can be blocked in system calls on behalf of Go code; 
+	those do not count against the GOMAXPROCS limit. This package's GOMAXPROCS function queries and changes the limit. 
+
+
