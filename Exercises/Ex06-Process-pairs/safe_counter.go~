@@ -1,0 +1,109 @@
+package main
+
+import (
+		"fmt"
+		"net"
+		"os"
+		"os/exec"
+		"strconv"
+		"time"
+)
+
+var laddr *net.UDPAddr
+var current_count byte = 0
+var message_size int = 1
+var alive_timeout_seconds int = 3
+
+func main() {
+	
+	// check for correct parameters on the command line
+	if len(os.Args) != 2  {
+		fmt.Println("Usage: go run safe_counter.go $PORT")
+		return
+	}
+
+	// get port number from command line
+	port := os.Args[1]
+	port_num, err := strconv.Atoi(port)
+	checkErr(err)
+	if port_num < 1025 {
+		fmt.Println("Port number needs to be higher than 1024.")
+		return
+	}
+
+	fmt.Println("---- backup mode ----")
+
+	// create Listener
+	laddr, err := net.ResolveUDPAddr("udp", "localhost:" + port)
+	checkErr(err)
+	listenConn, err := net.ListenUDP("udp", laddr)
+	checkErr(err)
+
+	listenConn_rcv_ch := make(chan byte)
+	go udp_connection_reader(listenConn, message_size, listenConn_rcv_ch)
+L:
+	for {
+		select {
+		case <- time.After(time.Second * 3):
+			break L
+
+		case current_count = <-listenConn_rcv_ch:
+			break
+		}
+		
+	}
+
+	fmt.Println("---- active mode ----")
+
+	// spawn backup process
+	backupPort := strconv.Itoa(port_num+1)
+	backup := exec.Command("/bin/bash")
+	stdin, _ := backup.StdinPipe()
+	backup.Start()
+	stdin.Write([]byte("gnome-terminal -x bash -c \"./safe_counter " + backupPort + "\" \n"))
+
+	// wait until backup process is up
+	time.Sleep(time.Second * 3)
+
+	// create transmit socket to backup process
+	baddr, err := net.ResolveUDPAddr("udp", "localhost:" + backupPort)
+	checkErr(err)
+	backupConn, err := net.DialUDP("udp", nil, baddr)
+	checkErr(err)
+
+	defer backupConn.Close()
+
+	buf := make([]byte, message_size)
+	for {
+		fmt.Println("Count:", current_count)
+		current_count++
+		buf[0] = current_count
+		backupConn.Write(buf)
+		time.Sleep(time.Second * 1)
+	}
+}
+
+func udp_connection_reader(conn *net.UDPConn, message_size int, rcv_ch chan byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("ERROR in udp_connection_reader: %s \n Closing connection.", r)
+			conn.Close()
+		}
+	}()
+
+	buf := make([]byte, message_size)
+	for {		
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil || n < 0 {
+			fmt.Printf("Error: udp_connection_reader: reading\n")
+			panic(err)
+		}
+		rcv_ch <- buf[0]
+	}
+}
+
+func checkErr(err error) {
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+}

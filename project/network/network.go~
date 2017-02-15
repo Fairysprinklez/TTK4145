@@ -8,21 +8,17 @@ import (
 	"os"
 )
 
-// We define some custom struct to send over the network.
-// Note that all members we want to transmit must be public. Any private members
-//  will be received as zero-values.
-type HelloMsg struct {
-	Message string
-	Iter    int
-}
+
 
 type Message struct {
-	//TODO: must make the struct
+	Msg string
+	Iter int
 }
 
 
 
-func ConnectToNetwork(messageTx, messageRx) {
+
+func ConnectToNetwork(messageTx chan Message, messageRx chan Message) {
 	//our id is the local ip of the computer (and the processID is appendend for testing)
 	var id string	
 	localIP, err := localip.LocalIP()
@@ -53,14 +49,15 @@ func ConnectToNetwork(messageTx, messageRx) {
 	
 
 
-func BroadcastMessage(message Message, messageTx) {
+func BroadcastMessage(message Message, messageTx chan Message) {
 	//Sending the message
 	messageTx <- message
 }
 
-func MessageRecieved() (Message, messageRx) {
-	message := <- messageRx
-	return
+func MessageRecieved(messageRx chan Message) (message Message) {
+	message = <- messageRx
+	return message
+
 }
 
 /*
