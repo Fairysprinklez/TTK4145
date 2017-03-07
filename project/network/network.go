@@ -49,15 +49,4 @@ func ConnectToNetwork(messageTx chan Message, messageRx chan Message) {
 	
 
 
-func BroadcastMessage(message Message, messageTx chan Message) {
-	//Sending the message
-	messageTx <- message
-}
-
-func MessageRecieved(messageRx chan Message) (message Message) {
-	message = <- messageRx
-	return message
-
-}
-
 
