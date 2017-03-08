@@ -1,152 +1,85 @@
 package driver
 
+import "time"
+import . "../config"
+
 /*
-#cgo CFLAGS: -std=c11
-#cgo LDFLAGS: -lcomedi -lm
+#cgo CFLAGS: -std=gnu11
+#cgo LDFLAGS: -lpthread -lcomedi -lm
 #include "elev.h"
 */
 import "C"
 
-import (
-	"../config"
-)
-//TODO: remove this when we're sure that everything is in config
-const NumFloors int = 4
-const NumButtons int = 3
-const MotorSpeed int = 2800
 
-var lampChannelMatrix = [config.NumFloors][config.NumButtons]int{
-	{LIGHT_UP1, LIGHT_DOWN1, LIGHT_COMMAND1},
-	{LIGHT_UP2, LIGHT_DOWN2, LIGHT_COMMAND2},
-	{LIGHT_UP3, LIGHT_DOWN3, LIGHT_COMMAND3},
-	{LIGHT_UP4, LIGHT_DOWN4, LIGHT_COMMAND4},
-}
+const pollRate = 20*time.Millisecond
 
-var buttonChannelMatrix = [config.NumFloors][config.NumButtons]int{
-	{BUTTON_UP1, BUTTON_DOWN1, BUTTON_COMMAND1},
-	{BUTTON_UP2, BUTTON_DOWN2, BUTTON_COMMAND2},
-	{BUTTON_UP3, BUTTON_DOWN3, BUTTON_COMMAND3},
-	{BUTTON_UP4, BUTTON_DOWN4, BUTTON_COMMAND4},
-}
-
-func ElevInitSim() {
-	C.elev_init(ET_Simulation)
-}
-
-func ElevInit() int {
-    if !io_init() {
-    	return -1
-	//TODO: must add some way to properly send understandable error message here
-    }
-
-    for f := 0; f < config.NumFloors; f++ {
-    	for b := 0; b <config.NumButtons; b++ {
-    		ElevSetButtonLamp(f, b, false)
-    	}
-    }
-
-    
-    ElevSetStopLamp(false);
-    ElevSetDoorOpenLamp(false);
-    ElevSetFloorIndicator(0);
-
-    return 0
+func Init(elevatorType ElevatorType) {
+    C.elev_init(C.elev_type(elevatorType))
 }
 
 
-func ElevSetMotorDirection(dirn int) {
-    if dirn == 0{
-        io_write_analog(MOTOR, 0)
-    } else if dirn > 0 {
-        io_clear_bit(MOTORDIR)
-        io_write_analog(MOTOR, config.MotorSpeed)
-    } else if dirn < 0 {
-        io_set_bit(MOTORDIR)
-        io_write_analog(MOTOR, config.MotorSpeed)
-    }
+func SetMotorDirection(dirn MotorDirection) {
+    C.elev_set_motor_direction(C.elev_motor_direction_t(dirn))
+}
+func SetButtonLamp(button int, floor int, value int){
+    C.elev_set_button_lamp(C.elev_button_type_t(button), C.int(floor), C.int(value))
+}
+func SetFloorIndicator(floor int) {
+    C.elev_set_floor_indicator(C.int(floor))
+}
+func SetDoorOpenLamp(value int) {
+    C.elev_set_door_open_lamp(C.int(value))
+}
+func SetStopLamp(value int) {
+    C.elev_set_stop_lamp(C.int(value))
 }
 
 
-func ElevSetButtonLamp(floor int, button int, value bool) {
-    //TODO: add functionality to check valid input
-
-    if value {
-        io_set_bit(lampChannelMatrix[floor][button])
-    } else {
-        io_clear_bit(lampChannelMatrix[floor][button])
-    }
+func GetButtonSignal(button int, floor int) int { 
+    return int(C.elev_get_button_signal(C.elev_button_type_t(button), C.int(floor)))
+} 
+func GetFloorSensorSignal() int { 
+    return int(C.elev_get_floor_sensor_signal())
 }
-
-
-func ElevSetFloorIndicator(floor int) {
-    //TODO: add functionality to check valid input
-
-
-    // Binary encoding. One light must always be on.
-    if floor&0x02 > 0 {
-        io_set_bit(LIGHT_FLOOR_IND1)
-    } else {
-        io_clear_bit(LIGHT_FLOOR_IND1)
-    }    
-
-    if floor&0x01 > 0 {
-        io_set_bit(LIGHT_FLOOR_IND2)
-    } else {
-        io_clear_bit(LIGHT_FLOOR_IND2)
-    }    
+func GetStopSignal() int { 
+    return int(C.elev_get_stop_signal())
 }
-
-
-func ElevSetDoorOpenLamp(value bool) {
-    if value {
-        io_set_bit(LIGHT_DOOR_OPEN)
-    } else {
-        io_clear_bit(LIGHT_DOOR_OPEN)
-    }
-}
-
-
-func ElevSetStopLamp(value bool) {
-    if value {
-        io_set_bit(LIGHT_STOP)
-    } else {
-        io_clear_bit(LIGHT_STOP)
-    }
+func GetObstructionSignal() int { 
+    return int(C.elev_get_obstruction_signal())
 }
 
 
 
-func ElevGetButtonSignal(floor int, button int) bool {
-    //TODO: add functionality to check valid input
 
-	if io_read_bit(buttonChannelMatrix[floor][button]) {
-		return true
-	} else {
-		return false
+func PollButtons(receiver chan<- ButtonEvent) {
+
+	previous := make([][3]int, NumFloors)
+
+	for {
+        time.Sleep(pollRate)
+		for f := 0; f < NumFloors; f++ {
+			for b := 0; b < 3; b++ {
+				v := GetButtonSignal(b, f)
+				if v != previous[f][b] && v != 0 {
+					receiver <- ButtonEvent{f, ButtonType(b)}
+				}
+				previous[f][b] = v
+			}
+		}
+
+	}    
+}
+
+func PollFloorSensor(receiver chan<- int) {
+
+	previous := -1
+
+	for {
+        time.Sleep(pollRate)
+		floor := GetFloorSensorSignal()
+		if floor != previous && floor != -1 {
+			receiver <- floor
+		}
+		previous = floor
 	}
-}
-
-
-func ElevGetFloorSensorSignal() int {
-    if io_read_bit(SENSOR_FLOOR1) {
-        return 0
-    } else if io_read_bit(SENSOR_FLOOR2) {
-        return 1
-    } else if io_read_bit(SENSOR_FLOOR3) {
-        return 2
-    } else if io_read_bit(SENSOR_FLOOR4) {
-        return 3
-    } else {
-        return -1
-    }
-}
-
-//unused in this project, added for completeness
-func ElevGetStopSignal() bool {
-    return io_read_bit(STOP)
-}
-
-//unused in this project, added for completeness
-func ElevGetObstructionSignal() bool {
-    return io_read_bit(OBSTRUCTION)
 }
