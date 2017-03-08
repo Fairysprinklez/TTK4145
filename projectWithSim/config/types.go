@@ -1,5 +1,6 @@
 package config
 
+//only used to determine if we start the hardware or run on simulator
 type ElevatorType int
 const (
     ET_Comedi ElevatorType  = 0
