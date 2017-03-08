@@ -2,23 +2,24 @@ package main
 
 import(
 	"./driver"
+	. "./config"
 
 )
 
 func main() {
-	driver.ElevInitSim()
+	driver.Init(ET_Comedi) //change to ET_Simulation to run on Ander's sim 
 
-	driver.ElevSetMotorDirection(-1)
+	driver.SetMotorDirection(MD_Up)
 	
 	for {
-		if driver.ElevGetFloorSensorSignal() == 3 {
-			driver.ElevSetMotorDirection(-1)
-		} else if driver.ElevGetFloorSensorSignal() == 0 {
-			driver.ElevSetMotorDirection(1)
+		if driver.GetFloorSensorSignal() == 3 {
+			driver.SetMotorDirection(MD_Down)
+		} else if driver.GetFloorSensorSignal() == 0 {
+			driver.SetMotorDirection(MD_Up)
 		}
 
-		if driver.ElevGetStopSignal() {
-			driver.ElevSetMotorDirection(0)
+		if driver.GetStopSignal() == 1 {
+			driver.SetMotorDirection(MD_Stop)
 		}		
 	}
 
