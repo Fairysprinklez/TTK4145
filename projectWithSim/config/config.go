@@ -20,9 +20,6 @@ type Lift struct{
 	cabMatrix [4]bool
 }
 
-//type CompleteNodeStatus struct{
-	//TODO: Make map
-
 	
 
 
