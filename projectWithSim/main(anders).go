@@ -1,4 +1,4 @@
-//package main
+package main
 
 import (
 	"./network/bcast"
@@ -80,7 +80,7 @@ func main() {
 			fmt.Printf("  Lost:     %q\n", p.Lost)
 
 		case a := <-helloRx:
-			fmt.Printf("Received: %#v\n", a)
+			fmt.Printf("Received: %#v\n", a.Iter)
 		}
 	}
 }
