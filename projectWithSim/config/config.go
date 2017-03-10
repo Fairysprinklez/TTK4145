@@ -7,6 +7,8 @@ const NumFloors int = 4
 const NumButtons int = 3
 const MotorSpeed int = 2800
 
+const doorOpenDuration int = 3 //seconds
+
 
 
 type Lift struct{
