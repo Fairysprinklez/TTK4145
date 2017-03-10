@@ -24,7 +24,7 @@ type NodeMap map[string]Lift
 type Message struct {
         //NodeMap NodeMap
         ID string
-	Iter int
+	      Iter int //for testing
 }
 	
 
