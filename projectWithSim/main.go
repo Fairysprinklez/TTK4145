@@ -7,8 +7,22 @@ import(
 	"time"
 	
 )
+/*
+func initializeLift() config.Lift {
+	//TODO: this must be fixed
+	lift := config.Lift{localip.Localip,
+		1,
+		-1,
+		config.MD_Stop,
+		LiftIDle,
+
+*/
 
 func main() {
+
+	//we need to initialize an instance of elevator here I think -Martin
+
+	
 	send := make(chan config.Message)
 	recieve := make(chan config.Message)
 	lostPeers := make(chan []string)
