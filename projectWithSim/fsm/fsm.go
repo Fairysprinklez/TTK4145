@@ -10,7 +10,8 @@ func setAllLights() {
 }
 
 func FsmInit(lift config.Lift) {
-	ThisLift = 
+	//is this really necessary???
+	//behaviour is set in main.initializeLiftData
 }
 
 func FsmOnInitBetweenFloors() {
@@ -21,7 +22,7 @@ func FsmOnInitBetweenFloors() {
 }
 
 func FsmOnRequestButtonPress(buttonEvent config.ButtonEvent) {
-	switch config.Lift.LiftBehaviour {
+	switch ThisLift.Behaviour {
 	case LiftDoorOpen:
 		//if currentFloor == requestedFloor { 
 			//start timer

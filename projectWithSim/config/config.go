@@ -23,7 +23,7 @@ type Lift struct{
 	LastKnownFloor int
 	MotorDir int
 	Behaviour LiftBehaviour //state
-	Requests[NumFloors][NumButtons] bool
+	Requests [NumFloors][NumButtons]bool
 }
 
 
