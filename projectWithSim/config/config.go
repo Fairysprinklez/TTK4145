@@ -11,17 +11,20 @@ const MotorSpeed int = 2800
 
 type Lift struct{
 	ID string
+	Alive bool
 	LastKnownFloor int
 	MotorDir int
-	requestMatrix [NumFloors][NumButtons]bool	
+	//hallMatrix [4][2]bool
+	//cabMatrix [4]bool
 }
 
 
 type NodeMap map[string]Lift
 
 type Message struct {
-        NodeMap NodeMap
+        //NodeMap NodeMap
         ID string
+	      Iter int //for testing
 }
 	
 
