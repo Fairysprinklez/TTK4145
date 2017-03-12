@@ -7,7 +7,7 @@ import(
 )
 
 func main() {
-	driver.Init(config.ET_Comedi) //change to ET_Simulation to run on Ander's sim 
+	driver.Init(config.ET_Simulation) //change to ET_Simulation to run on Ander's sim 
 
 	driver.SetMotorDirection(config.MD_Up)
 	

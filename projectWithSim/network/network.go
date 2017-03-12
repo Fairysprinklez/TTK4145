@@ -1,12 +1,10 @@
 package network
 
 import (
-	
 	"./localip"
 	"./peers"
 	"./bcast"
 	"fmt"
-	"time"
 	"os"
 	"../config"
 )
@@ -26,12 +24,12 @@ func Network(messageTx chan config.Message, messageRx chan config.Message, lostP
 	// We can disable/enable the transmitter after it has been started.
 	// This could be used to signal that we are somehow "unavailable".
 	peerTxEnable := make(chan bool)
-	go peers.Transmitter(20188, id, peerTxEnable)
+	go peers.Transmitter(20188, ID, peerTxEnable)
 	go peers.Receiver(20188, peerUpdateCh)
 
 	go bcast.Transmitter(20088, messageTx)
 	go bcast.Receiver(20088, messageRx)
-  fmt.Println("started network")
+	fmt.Println("started network")
 	
 	for {
                 p := <-peerUpdateCh
