@@ -5,6 +5,10 @@ import(
 	"../driver"
 )
 
+//Do we really want function calls, and not prompts on channels?
+//Using function calls, certainly simplifies things as it's more similar
+//to the template provided in the project repo.
+
 func setAllLights() {
 	//no clue how to do this yet.
 }
@@ -16,6 +20,7 @@ func FsmInit(lift config.Lift) {
 
 func FsmOnInitBetweenFloors() {
 	driver.SetMotorDirection(config.MD_Down)
+	// fsm won't have access to "ThisLift" unless argument in func call from main
 	config.ThisLift.MotorDir = config.MD_Down
 	config.Lift.LiftBehavior = config.LiftMoving 
 	
