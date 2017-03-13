@@ -54,6 +54,7 @@ func main() {
 	lostPeers := make(chan []string)
 
 	go network.Network(send, recieve, lostPeers)
+	//go nodeMapCompiler(send, recieve, lostPeers, /*intFloor*/, /*intBtn*/, /*intMD*/, /*intBehav*/)
 	
 	go func() {	
 		test := config.Message{"Kåre", 0}
