@@ -21,7 +21,8 @@ type Lift struct{
 	ID string
 	Alive bool
 	LastKnownFloor int
-	MotorDir int
+	TargetFloor int
+	MotorDir MotorDirection
 	Behaviour LiftBehaviour //state
 	Requests [NumFloors][NumButtons]bool
 }

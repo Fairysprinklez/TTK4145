@@ -20,6 +20,7 @@ func initializeLiftData() config.Lift {
 		lift = config.Lift{id,
 		true,
 		-1,
+		-1,
 		config.MD_Stop,
 		config.LiftIdle,
 		requests}
@@ -29,16 +30,39 @@ func initializeLiftData() config.Lift {
 	return lift
 }
 
-//Tried this and "var nodeMap config.NodeMap"
-var nodeMap map[string]config.Lift
+var nodeMap config.NodeMap
 
 func main() {
+
+	Lift1 := initializeLiftData()
+	Lift2 := initializeLiftData()
+	Lift2.LastKnownFloor = 1
+	
+	fmt.Println(Lift1 == Lift2)
+	
+	nodeMap = make(config.NodeMap)
 	
 	//"panic: assignment to entry in nil map" no matter what I try....
 	nodeMap["testLift"] = initializeLiftData()
 	
-	fmt.Println(nodeMap["testLift"].Requests[0][0])
+	val, ok := nodeMap["testLift1"];
+	if !ok{
+		fmt.Println("testLift key in map")
+		fmt.Println(val.Requests[0][0])
+	}
+	
+	//fmt.Println(nodeMap["testLift"].Requests[0][0])
 
 }
 
 /*Maps and printing can go to hell.......*/
+
+
+
+
+
+
+
+
+
+
