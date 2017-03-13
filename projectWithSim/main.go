@@ -4,6 +4,8 @@ import(
 	"./network"
 	"./network/localip"
 	"./config"
+	"./driver"
+	"./fsm"
 	"fmt"
 	"time"
 	
@@ -24,6 +26,7 @@ func initializeLiftData() config.Lift {
 		lift = config.Lift{id,
 		true,
 		-1,
+		1,
 		config.MD_Stop,
 		config.LiftIdle,
 		requests}
@@ -40,9 +43,10 @@ func main() {
 	//we need to initialize an instance of elevator here I think -Martin
 	ThisLift := initializeLiftData()
 	//fmt.Println(ThisLift)
-
+	LiftToFsmCh :=make(chan config.Lift)
+	LiftToFsmCh <- ThisLift
 	if driver.GetFloorSensorSignal() == -1 {
-		fsm.FsmOnInitBetweenFloors()
+		fsm.FsmOnInitBetweenFloors(LiftToFsmCh)
 	}
 
 	
