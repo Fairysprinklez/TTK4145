@@ -13,7 +13,7 @@ type LiftBehaviour int
 const (
 	LiftIdle = iota
 	LiftDoorOpen
-	LifMoving	
+	LiftMoving	
 )
 
 

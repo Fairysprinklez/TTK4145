@@ -18,38 +18,61 @@ func FsmInit(lift config.Lift) {
 	//behaviour is set in main.initializeLiftData
 }
 
-func FsmOnInitBetweenFloors() {
+func FsmOnInitBetweenFloors(LiftCh chan config.Lift) {
+	thisLift := <- LiftCh	
 	driver.SetMotorDirection(config.MD_Down)
-	// fsm won't have access to "ThisLift" unless argument in func call from main
-	config.ThisLift.MotorDir = config.MD_Down
-	config.Lift.LiftBehavior = config.LiftMoving 
+	thisLift.MotorDir = config.MD_Down
+	thisLift.LiftBehavior = config.LiftMoving
+	LiftCh <- thisLift
 	
 }
+ 
+func FsmOnRequestButtonPress(liftIn chan config.Lift, liftOut chan config.Lift, buttonEvent config.ButtonEvent) {
+	timerIsActive := false
+	timer := time.NewTimer(3*time.Second)	
+	for {
+	
+		thisLift := <- liftin
 
-func FsmOnRequestButtonPress(buttonEvent config.ButtonEvent) {
-	switch ThisLift.Behaviour {
-	case LiftDoorOpen:
-		//if currentFloor == requestedFloor { 
-			//start timer
-		//}else { 
-			//requests[buttonEvent] = 1
-		//}
-	case LiftMoving:
-		//requests[buttonEvent] = 1
+		switch thisLift.Behaviour {
+		case LiftDoorOpen:
+			if thisLift.LastKnownFloor == thisLift.TargetFloor {
+				driver.SetDoorOpenLamp(1)	
+				if !timerExist {
+					timer.Reset(time.Second * config.DoorOpenDuration)
+					timerIsActive = true
+					for b := 0; b < config.NumButtons; b++ {
+						thisLift.Requests[thislift.LastKnownFloor][b] = false
+					}
+			}
+			select {
+			case <-timer.C: {
+				driver.SetDoorOpenLamp(0)
+				thisLift.Behaviour = config.LiftIdle
+				timerIsActive = false				
+				}
+			default:
+			}
 
-	case LiftIdle:
-		//if currentfloor = requestedfloor { 
-			//driver.SetDoorOpenLamp(1)
-			//start timer
-			//config.Lift.Liftbehaviour = LiftDoorOpen
-		//}else {
-			//requests[buttonEvent] = 1
-			//config.ThisLift.MotorDir = requestsChooseDirection
-			//driver.SetMotorDirection(config.ThisLift.MotorDir)
-			//config.Lift.Liftbehaviour = LiftMoving
-		//}
+		case LiftMoving:
+			if thisLift.LastKnownFloor == thisLift.TargetFloor {
+				thisLift.Behaviour = config.LiftDoorOpen
+			}
+	
+		case LiftIdle:
+			//if currentfloor = requestedfloor { 
+				//driver.SetDoorOpenLamp(1)
+				//start timer
+				//config.Lift.Liftbehaviour = LiftDoorOpen
+			//}else {
+				//requests[buttonEvent] = 1
+				//config.ThisLift.MotorDir = requestsChooseDirection
+				//driver.SetMotorDirection(config.ThisLift.MotorDir)
+				//config.Lift.Liftbehaviour = LiftMoving
+			//}
+		}
+		liftOut <- thisLift
 	}
-	//setAllLights() 
 
 }
 

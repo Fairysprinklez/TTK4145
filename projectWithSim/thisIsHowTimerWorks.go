@@ -10,16 +10,23 @@ import "time"
 import "fmt"
 
 func main() {
+	timerExist := false
+	timer := time.NewTimer(3*time.Second)	
+	for {		
+		
+		if !timerExist {
+			timer.Reset(3*time.Second)
+			timerExist = true
+		}
+		select {
+		case <-timer.C:
+			fmt.Println("we waited 3 seconds")
+			timerExist = false
+		default:
+		}
+		fmt.Println("SPAM")
+		time.Sleep(200*time.Millisecond)
+	}
 
-    // Timers represent a single event in the future. You
-    // tell the timer how long you want to wait, and it
-    // provides a channel that will be notified at that
-    // time. This timer will wait 2 seconds.
-    timer1 := time.NewTimer(time.Second * 2)
 
-    // The `<-timer1.C` blocks on the timer's channel `C`
-    // until it sends a value indicating that the timer
-    // expired.
-    <-timer1.C
-    fmt.Println("Timer 1 expired")
 }
