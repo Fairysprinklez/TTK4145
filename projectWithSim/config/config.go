@@ -9,7 +9,6 @@ const MotorSpeed int = 2800
 const DoorOpenDuration int = 3 //seconds
 
 type LiftBehaviour int
-
 const (
 	LiftIdle = iota
 	LiftDoorOpen
@@ -25,6 +24,7 @@ const (
 	Floor_Poll
 )
 
+
 type Lift struct {
 	ID             string
 	Alive          bool
@@ -35,6 +35,7 @@ type Lift struct {
 	Requests       [NumFloors][NumButtons]bool
 }
 
+
 type NodeMap map[string]Lift
 
 type Message struct {
@@ -42,6 +43,7 @@ type Message struct {
 	ID      string
 	//Iter    int //for testing
 }
+
 
 //Added for simplified logic in compiler -Sondre
 type LiftUpdate struct {

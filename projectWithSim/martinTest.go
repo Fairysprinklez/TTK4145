@@ -2,39 +2,30 @@ package main
 
 import (
 	"fmt"
-	"./config"
-	"./network/localip"
+	"time"
+	"os"
+	"syscall"
+	"os/exec"
+	"os/signal"
 )
 
-func initializeLiftData() config.Lift {
-	//TODO: this is a hackjob, but could be useful...
-	var lift config.Lift
-	var requests [config.NumFloors][config.NumButtons]bool
-	id, err := localip.LocalIP()
-	if err != nil {
-		for f := 0; f < config.NumFloors; f++ {
-			for b := 0; b < config.NumButtons; b++ {
-				requests[f][b] = false		
-			}
-		}
-	
-		lift = config.Lift{id,
-		true,
-		-1,
-		-1,
-		config.MD_Stop,
-		config.LiftIdle,
-		requests}
-	
-	}
-	
-	return lift
-}
-
 func main() {
-	ThisLift := initializeLiftData()
-	
-	ThisLift.Behaviour = config.LiftDoorOpen
-	fmt.Println(ThisLift)
+	var iter int
+	iter = 0
+	for {
+		iter++
+		fmt.Println(iter)
+		time.Sleep(3*time.Second)
+	}
+
+	go func (){
+		sigs := make(chan os.Signal)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
+		fmt.Println("I'm dying, will reincarnate")
+		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "./martinTest.go")
+		backup.Run()
+		os.Exit(0)
+	}()
 }
 
