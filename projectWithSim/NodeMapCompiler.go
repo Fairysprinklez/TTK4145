@@ -4,10 +4,6 @@ import (
 	"./config"
 )
 
-/*TODO: determine channels:
-	
-	
-*/
 
 var nodeMap config.NodeMap
 var myID string
@@ -21,7 +17,7 @@ func mergeRequests(recievedRequests []bool, myCopy []bool){
 	for floor := 0; floors < config.NumFloors; floor++ {
 		for button := 0; button < config.NumButtons; button++{
 			
-			mergedRequests[floor][button] = (recievedRequests[floor][button] || myCopy[floor][button])
+			mergedRequests[floor][button] = (recievedRequests[floor][button] || myRequests[floor][button])
 			
 		}
 	}
@@ -31,7 +27,7 @@ func mergeRequests(recievedRequests []bool, myCopy []bool){
 
 func nodeMapCompiler(	recieveMessage <-chan config.Message,
 						sendMap chan<- config.NodeMap,
-						recieveLift <-chan config.Lift,
+						recieveLift <-chan config.LiftUpdate,
 						lostPeers <-chan []string,
 						){
 	
@@ -65,7 +61,14 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 			if (senderLift.Alive && !(myMap[senderID].Alive)){
 				mergedRequests := mergeRequests(senderLift.Requests, myMap[senderID].Requests)
 				senderLift.Requests = mergedRequests
-				
+				myMap[senderID] = senderLift
+				myMapChanged = true
+
+			}else if (thisLift.Alive && !(message.nodeMap[myID])){
+				mergedRequests := mergeRequests(thisLift.Requests, message.nodemap[myID].Requests)
+				thisLift.Requests = mergedRequests
+				myMap[myID] = thisLift
+				myMapChanged = true
 			}
 			
 			//Adopts appropriate values of message.nodeMap[senderID] into myMap[myID]
@@ -104,27 +107,70 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 				myMap[senderID] := senderLift
 				myMapChanged = true
 			}
-			
-			if myMapChanged {
-				sendMap <- myMap
-			}
 	
-		case incLift = <-recieveLift:
+		case liftUpdate = <-recieveLift:
+			incomingLift = liftUpdate.Lift
+			source = liftUpdate.Source
 			thisLift = myMap[myID]
 			if thisLift != incLift{
-
-				thisLift.Behaviour = incLift.Behaviour
-				thisLift.MotorDir = incLift.MotorDir
-				thisLift.TargetFloor = incLift.TargetFloor
-				if thisLift.Requests != incLift.Requests {
+				if source == config.FSM{
+					thisLift.Behaviour = incomingLift.Behaviour
 					for floor := 0; floors < config.NumFloors; floor++ {
-						for button := 0; button < 2; button++{
-							if thisLift.Requests[floor][button] != incLift.Requests[floor][button] {
-								
-							}	
+						for button := 0; button < config.NumButtons; button++{
+							if (!incomingLift.Requests[floor][Button]
+								&& incomingLift.Behaviour == config.LiftDoorOpen
+								&& incomingLift.LastKnownFloor == floor)
+							{
+
+								thisLift.Requests[floor][button] = incomingLift.Requests[floor][Button]
+
+							}
 						}
 					}
+				} else if source == config.Cost {
+
+					thisLift.TargetFloor = incomingLift.TargetFloor
+
+				}else if source == config.Button_Poll {
+					for floor := 0; floors < config.NumFloors; floor++ {
+						for button := 0; button < config.NumButtons; button++{
+							if incomingLift.Requests[floor][Button]{
+								thisLift.Requests[floor][button] = incomingLift.Requests[floor][Button]
+							}
+						}
+					}
+				}else if source == config.Floor_Poll {
+
+					thisLift.LastKnownFloor = incomingLift.LastKnownFloor
+
 				}
 			}
+			if thisLift != myMap[myId] {
+				myMap[myID] = thisLift
+				myMapChanged = true
+			}
+
+		case disconnectedNodes := <- lostPeers:
+			thisLift := myMap[myID]
+			for _,peer := range disconnectedNodes {
+  				disconnectedLift := myMap[peer]
+  				disconnectedLift.Alive = false
+  				for floor := 0; floors < config.NumFloors; floor++ {
+					for button := 0; button < 2; button++{
+						thisLift.Requests[floor][button] = (thisLift.Requests[floor][button] || disconnectedLift.Requests[floor][button])
+
+					}
+				}
+				myMap[peer] = disconnectedLift
+			}
+			myMap[myID]
+			myMapChanged = true
+
+
+
+		if myMapChanged {
+			sendMap <- myMap
 		}
+
 	}
+}

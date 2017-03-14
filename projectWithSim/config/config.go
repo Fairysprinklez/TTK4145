@@ -16,6 +16,15 @@ const (
 	LiftMoving
 )
 
+//Added for simplified logic in compiler -Sondre
+type Source int
+const (
+	FSM = iota
+	Cost 
+	Button_Poll
+	Floor_Poll
+)
+
 type Lift struct {
 	ID             string
 	Alive          bool
@@ -31,5 +40,11 @@ type NodeMap map[string]Lift
 type Message struct {
 	NodeMap NodeMap
 	ID      string
-	Iter    int //for testing
+	//Iter    int //for testing
+}
+
+//Added for simplified logic in compiler -Sondre
+type LiftUpdate struct {
+	Lift Lift
+	Source Source
 }
