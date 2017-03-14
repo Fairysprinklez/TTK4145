@@ -8,6 +8,10 @@ import (
 	"./network/localip"
 	"fmt"
 	"time"
+	"os"
+	"syscall"
+	"os/exec"
+	"os/signal"
 )
 
 func initializeLiftData() config.Lift {
@@ -159,4 +163,15 @@ func main() {
 		}
 
 	}
+
+	//THIS MAKES THE ELEVATOR RESTART IF IT FUCKS UP
+	go func (){
+		sigs := make(chan os.Signal)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
+		fmt.Println("I'm dying, will reincarnate")
+		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run reincarnate.go")
+		backup.Run()
+		os.Exit(0)
+	}()
 }

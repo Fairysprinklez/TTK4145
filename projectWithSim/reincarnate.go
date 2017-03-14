@@ -13,13 +13,14 @@ func main() {
 	var iter int
 	iter = 0
 
-	sigs := make(chan os.Signal)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	
 
 	go func (){
+		sigs := make(chan os.Signal)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 		<-sigs
 		fmt.Println("I'm dying, will reincarnate")
-		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run martinTest.go")
+		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run reincarnate.go")
 		backup.Run()
 		os.Exit(0)
 
