@@ -72,6 +72,7 @@ func PollFloorSensor(receiver chan<- int) {
 		time.Sleep(pollRate)
 		floor := GetFloorSensorSignal()
 		if floor != previous && floor != -1 {
+			SetFloorIndicator(floor)
 			receiver <- floor
 		}
 		previous = floor

@@ -15,24 +15,16 @@ import (
 )
 
 func initializeLiftData() config.Lift {
-	//TODO: this is a hackjob, but could be useful...
 	var lift config.Lift
-	var requests [config.NumFloors][config.NumButtons]bool
 	id, err := localip.LocalIP()
-	if err != nil {
-		for f := 0; f < config.NumFloors; f++ {
-			for b := 0; b < config.NumButtons; b++ {
-				requests[f][b] = false
-			}
-		}
-
-		lift = config.Lift{id,
-			true,
-			-1,
-			-1,
-			config.MD_Stop,
-			config.LiftIdle,
-			requests}
+	if err == nil {
+		lift = config.Lift{
+			ID: id,
+			Alive: true,
+			LastKnownFloor: -1,
+			TargetFloor: -1,
+			MotorDir: config.MD_Stop,
+			Behaviour: config.LiftIdle}
 
 	}
 
@@ -41,14 +33,12 @@ func initializeLiftData() config.Lift {
 
 var message config.Message
 var localLift config.LiftUpdate
+var outboundMap config.NodeMap
 
 func main() {
 
-	//we need to initialize an instance of elevator here I think -Martin
-	//yes we do - Martin
 	thisLift := initializeLiftData()
 	myID := thisLift.ID
-	//fmt.Println(ThisLift)
 
 	/*//##### FSM Init #####
 	LiftToFsmCh :=make(chan config.Lift)
@@ -77,8 +67,9 @@ func main() {
 	//compiler channels
 	recievedMsg := make(chan config.Message)
 	sendMap := make(chan config.NodeMap)
-	disconnectedNodes := make(chan []string)
 	liftToCompiler := make(chan config.LiftUpdate)
+	disconnectedNodes := make(chan []string)
+	
 
 	//polling channels
 	polledButton := make(chan config.ButtonEvent)
@@ -126,8 +117,8 @@ func main() {
 			case p := <-lostPeers:
 				disconnectedNodes <- p 
 
-			case incommingMessage := <- recieve:
-				recievedMsg <- incommingMessage
+			case message := <- recieve:
+				recievedMsg <- message
 
 			case outboundMap := <- sendMap:
 				thisLift = outboundMap[myID]

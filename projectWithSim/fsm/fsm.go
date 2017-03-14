@@ -58,6 +58,14 @@ func FsmLoop(liftIn chan config.Lift, liftOut chan config.Lift) {
 		case config.LiftIdle:
 			//The cost-function set's this Lift.MotorDir, we just pass it on to hardware
 			//could be something wonky here if MotorDir is 0, since it will set the hardware repeatedly
+			if(thisLift.TargetFloor > thisLift.LastKnownFloor && thisLift.TargetFloor != -1) {
+				thisLift.MotorDir = config.MD_Up
+			}else if (thisLift.TargetFloor > thisLift.LastKnownFloor && thisLift.TargetFloor != -1){
+				thisLift.MotorDir = config.MD_Down
+			}else if (thisLift.TargetFloor == thisLift.LastKnownFloor){
+				thisLift.Behaviour = config.LiftDoorOpen
+			}			
+				
 			driver.SetMotorDirection(thisLift.MotorDir)
 			if thisLift.MotorDir != config.MD_Stop {
 				thisLift.Behaviour = config.LiftMoving
