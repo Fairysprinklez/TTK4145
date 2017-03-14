@@ -11,7 +11,9 @@ import (
 
 var nodeMap config.NodeMap
 var myID string
-var change bool
+var myMapChanged bool
+var thisLift config.Lift
+var senderLift config.Lift
 
 func nodeMapCompiler(	recieveMessage <-chan config.Message,
 						sendMap chan<- config.NodeMap,
@@ -19,64 +21,88 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 						lostPeers <-chan []string,
 						){
 	
+	myMap = make(config.NodeMap)
+
 	thisLift := <- recieveLift
 	myID = ThisLift.ID
-	myMap = make(config.NodeMap)
 	myMap[myID] = thisLift
-	change = false
+	myMapChanged = false
 	
 	for{	
+
+		myMapChanged = false
+
 		select{
 		case message := <-recieveMessage:
 			senderID := message.ID
+			senderLift := message.nodeMap[senderID]
+			thisLift := myMap[myID]
+
 			//Adds lift in map, if it doesn't exist in it
 			for key := range message.nodeMap {
 				exists := myMap[key]
 				if !exists {
-					myMap[key] := message.nodeMap[key]
-					change = true
+					newLift := message.nodeMap[key]
+					myMap[key] := newLift
+					myMapChanged = true
 				}
 			}
 			
 			//Changes myMap[senderID] to message.nodemap[senderID] if they are different
-			if (message.nodeMap[senderID] != myMap[senderID]){
-				myMap[senderID] := message.nodeMap[senderID]
-				change = true
+			if (senderLift != myMap[senderID]){
+				myMap[senderID] := senderLift
+				myMapChanged = true
 			}
 			
 			//Adopts appropriate values of message.nodeMap[senderID] into myMap[myID]
-			for floors := 0; floors < config.NumFloors; floors++ {
-				for buttons := 0; buttons < 2; buttons++{
-					if (message.nodeMap[senderID].Requests[floors][buttons] == false && message.nodeMap[senderID].Behaviour == config.DoorOpen){
-					
+			for floor := 0; floors < config.NumFloors; floor++ {
+				for button := 0; button < 2; button++{
+					thisLift = myMap[myID]
+					if (senderLift.Requests[floor][button] != thisLift.Requests[floor][button]){
+						if (!senderLift.Requests[floor][button] 
+							&& senderLift.Behaviour == config.LiftDoorOpen
+							&& senderLift.LastKnownFloor == floor)
+						{
+
+							thisLift.Requests[floors][button] = false
+
+						}else if (senderLift.Requests[floor][button]
+							&& !(thisLift.Behaviour == config.LiftDoorOpen && thisLift.LastKnownFloor == floor))
+						{
+
+							thisLift.Requests[floor][button] = true
+							
+						}
+					}
+					if thisLift != myMap[myID] {
+
+					myMap[myID] = thisLift
+					myMapChanged = true
+
 					}
 				}
 			}
 			
-			
-			
-			
-				
-				if {
-				for /*elements in map*/{
-					/*compare values*/
-					/*What conditions to set? 0->1?, 1->0?, overwrite every time? Need some sort of sync*/
-					if /*senderID = mapElement.key*/{
-						/*update values*/
-					}
-				}
-			//TODO: Figure out how the hell to manage the maps....
-			//testing yielded no conclusive results, NEED HELP!!!
-			
-			/*sendchannel*/<-nodeMap
+			if myMapChanged {
+				sendMap <- myMap
+			}
 	
 		case incLift = <-recieveLift:
 			thisLift = myMap[myID]
 			if thisLift != incLift{
-				thisLift = incLift
-				myMap[myID] = thisLift
-				sendMap <- myMap
+
+				thisLift.Behaviour = incLift.Behaviour
+				thisLift.MotorDir = incLift.MotorDir
+				thisLift.TargetFloor = incLift.TargetFloor
+				if thisLift.Requests != incLift.Requests {
+					for floor := 0; floors < config.NumFloors; floor++ {
+						for button := 0; button < 2; button++{
+							if thisLift.Requests[floor][button] != incLift.Requests[floor][button] {
+								
+							}	
+						}
+					}
+				}
 			}
-			
 		}
 	}
