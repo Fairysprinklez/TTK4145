@@ -1,87 +1,69 @@
 package fsm
 
-import(
+import (
 	"../config"
 	"../driver"
+	"time"
 )
 
-//Do we really want function calls, and not prompts on channels?
-//Using function calls, certainly simplifies things as it's more similar
-//to the template provided in the project repo.
-
-func setAllLights() {
-	//no clue how to do this yet.
-}
-
-func FsmInit(lift config.Lift) {
+/*func FsmInit(lift config.Lift) {
 	//is this really necessary???
 	//behaviour is set in main.initializeLiftData
-}
+}*/
 
 func FsmOnInitBetweenFloors(LiftCh chan config.Lift) {
-	thisLift := <- LiftCh	
+	thisLift := <-LiftCh
 	driver.SetMotorDirection(config.MD_Down)
 	thisLift.MotorDir = config.MD_Down
-	thisLift.LiftBehavior = config.LiftMoving
+	thisLift.Behaviour = config.LiftMoving
 	LiftCh <- thisLift
-	
+
 }
- 
-func FsmOnRequestButtonPress(liftIn chan config.Lift, liftOut chan config.Lift, buttonEvent config.ButtonEvent) {
+
+func FsmLoop(liftIn chan config.Lift, liftOut chan config.Lift) {
 	timerIsActive := false
-	timer := time.NewTimer(3*time.Second)	
+	timer := time.NewTimer(3 * time.Second)
 	for {
-	
-		thisLift := <- liftin
+
+		thisLift := <-liftIn
 
 		switch thisLift.Behaviour {
-		case LiftDoorOpen:
+		case config.LiftDoorOpen:
 			if thisLift.LastKnownFloor == thisLift.TargetFloor {
-				driver.SetDoorOpenLamp(1)	
-				if !timerExist {
-					timer.Reset(time.Second * config.DoorOpenDuration)
+				driver.SetDoorOpenLamp(1)
+				if !timerIsActive {
+					timer.Reset(time.Second * 3)
 					timerIsActive = true
 					for b := 0; b < config.NumButtons; b++ {
-						thisLift.Requests[thislift.LastKnownFloor][b] = false
+						thisLift.Requests[thisLift.LastKnownFloor][b] = false
 					}
+				}
 			}
 			select {
-			case <-timer.C: {
-				driver.SetDoorOpenLamp(0)
-				thisLift.Behaviour = config.LiftIdle
-				timerIsActive = false				
+			case <-timer.C:
+				{
+					driver.SetDoorOpenLamp(0)
+					thisLift.Behaviour = config.LiftIdle
+					timerIsActive = false
 				}
 			default:
 			}
 
-		case LiftMoving:
+		case config.LiftMoving:
 			if thisLift.LastKnownFloor == thisLift.TargetFloor {
 				thisLift.Behaviour = config.LiftDoorOpen
 			}
-	
-		case LiftIdle:
-			//if currentfloor = requestedfloor { 
-				//driver.SetDoorOpenLamp(1)
-				//start timer
-				//config.Lift.Liftbehaviour = LiftDoorOpen
-			//}else {
-				//requests[buttonEvent] = 1
-				//config.ThisLift.MotorDir = requestsChooseDirection
-				//driver.SetMotorDirection(config.ThisLift.MotorDir)
-				//config.Lift.Liftbehaviour = LiftMoving
-			//}
+			//what if FsmOnInitBetweenFloor get's called?
+
+		case config.LiftIdle:
+			//The cost-function set's this Lift.MotorDir, we just pass it on to hardware
+			//could be something wonky here if MotorDir is 0, since it will set the hardware repeatedly
+			driver.SetMotorDirection(thisLift.MotorDir)
+			if thisLift.MotorDir != config.MD_Stop {
+				thisLift.Behaviour = config.LiftMoving
+			}
 		}
 		liftOut <- thisLift
 	}
 
 }
-
-func FsmOnFloorArrival(newFloor int) {
-
-}
-
-func FsmOnDoorTimeout() {
-
-}
-
-
