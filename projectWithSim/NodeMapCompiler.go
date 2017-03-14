@@ -15,6 +15,20 @@ var myMapChanged bool
 var thisLift config.Lift
 var senderLift config.Lift
 
+//TODO: return type?
+func mergeRequests(recievedRequests []bool, myCopy []bool){
+	mergedRequests := myCopy
+	for floor := 0; floors < config.NumFloors; floor++ {
+		for button := 0; button < config.NumButtons; button++{
+			
+			mergedRequests[floor][button] = (recievedRequests[floor][button] || myCopy[floor][button])
+			
+		}
+	}
+	
+	return mergedRequests
+}
+
 func nodeMapCompiler(	recieveMessage <-chan config.Message,
 						sendMap chan<- config.NodeMap,
 						recieveLift <-chan config.Lift,
@@ -24,7 +38,7 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 	myMap = make(config.NodeMap)
 
 	thisLift := <- recieveLift
-	myID = ThisLift.ID
+	myID = thisLift.ID
 	myMap[myID] = thisLift
 	myMapChanged = false
 	
@@ -48,30 +62,32 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 				}
 			}
 			
-			//Changes myMap[senderID] to message.nodemap[senderID] if they are different
-			if (senderLift != myMap[senderID]){
-				myMap[senderID] := senderLift
-				myMapChanged = true
+			if (senderLift.Alive && !(myMap[senderID].Alive)){
+				mergedRequests := mergeRequests(senderLift.Requests, myMap[senderID].Requests)
+				senderLift.Requests = mergedRequests
+				
 			}
 			
 			//Adopts appropriate values of message.nodeMap[senderID] into myMap[myID]
 			for floor := 0; floors < config.NumFloors; floor++ {
 				for button := 0; button < 2; button++{
 					thisLift = myMap[myID]
-					if (senderLift.Requests[floor][button] != thisLift.Requests[floor][button]){
-						if (!senderLift.Requests[floor][button] 
-							&& senderLift.Behaviour == config.LiftDoorOpen
-							&& senderLift.LastKnownFloor == floor)
-						{
+					
+						if (senderLift.Requests[floor][button] != thisLift.Requests[floor][button]){
+							if (!senderLift.Requests[floor][button] 
+								&& senderLift.Behaviour == config.LiftDoorOpen
+								&& senderLift.LastKnownFloor == floor)
+							{
 
-							thisLift.Requests[floors][button] = false
+								thisLift.Requests[floors][button] = false
 
-						}else if (senderLift.Requests[floor][button]
-							&& !(thisLift.Behaviour == config.LiftDoorOpen && thisLift.LastKnownFloor == floor))
-						{
+							}else if (senderLift.Requests[floor][button]
+								&& !(thisLift.Behaviour == config.LiftDoorOpen && thisLift.LastKnownFloor == floor))
+							{
 
-							thisLift.Requests[floor][button] = true
+								thisLift.Requests[floor][button] = true
 							
+							}
 						}
 					}
 					if thisLift != myMap[myID] {
@@ -81,6 +97,12 @@ func nodeMapCompiler(	recieveMessage <-chan config.Message,
 
 					}
 				}
+			}
+			
+			//Changes myMap[senderID] to message.nodemap[senderID] if they are different
+			if (senderLift != myMap[senderID]){
+				myMap[senderID] := senderLift
+				myMapChanged = true
 			}
 			
 			if myMapChanged {
