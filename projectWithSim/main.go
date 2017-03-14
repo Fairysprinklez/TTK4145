@@ -2,7 +2,7 @@ package main
 
 import (
 	"./config"
-	//"./driver"
+	"./driver"
 	//"./fsm"
 	"./network"
 	"./network/localip"
@@ -25,7 +25,7 @@ func initializeLiftData() config.Lift {
 		lift = config.Lift{id,
 			true,
 			-1,
-			0,
+			-1,
 			config.MD_Stop,
 			config.LiftIdle,
 			requests}
@@ -35,11 +35,15 @@ func initializeLiftData() config.Lift {
 	return lift
 }
 
+var message config.Message
+var localLift config.LiftUpdate
+
 func main() {
 
 	//we need to initialize an instance of elevator here I think -Martin
 	//yes we do - Martin
-	ThisLift := initializeLiftData()
+	thisLift := initializeLiftData()
+	myID := thisLift.ID
 	//fmt.Println(ThisLift)
 
 	/*//##### FSM Init #####
@@ -60,14 +64,37 @@ func main() {
 	//Initialize maps like this:
 	var NodeMap config.NodeMap
 	NodeMap = make(config.NodeMap)
-	NodeMap[ThisLift.ID] = ThisLift
+	NodeMap[ThisLift.ID] = thisLift
 
 	send := make(chan config.Message)
 	recieve := make(chan config.Message)
 	lostPeers := make(chan []string)
 
+	//compiler channels
+	recievedMsg := make(chan config.Message)
+	sendMap := make(chan config.NodeMap)
+	disconnectedNodes := make(chan []string)
+	liftToCompiler := make(chan config.LiftUpdate)
+
+	//polling channels
+	polledButton := make(chan config.ButtonEvent)
+	polledFloorSensor := make(chan int)
+
+	//FSM channels
+	liftToFsm := make(chan config.Lift)
+	liftFromFsm := make(chan config.Lift)
+
+	//COST channels
+	mapToCost := make(chan config.NodeMap)
+	liftFromCost := make(chan config.Lift)
+
+	//Starting threads
 	go network.Network(send, recieve, lostPeers)
-	//go nodeMapCompiler(send, recieve, lostPeers, /*intFloor*/, /*intBtn*/, /*intMD*/, /*intBehav*/)
+	go nodeMapCompiler(recievedMsg, sendMap, liftToCompiler, disconnectedNodes)
+	go driver.PollButtons(polledButton)
+	go driver.PollFloorSensor(polledFloorSensor)
+
+
 
 	go func() {
 		test := config.Message{NodeMap, ThisLift.ID, 0}
@@ -86,5 +113,50 @@ func main() {
 		case r := <-recieve:
 			fmt.Println("recieved: ", r)
 		}
+	}
+
+
+	//Scetch of main loop
+	for{
+		select{
+			case p := <-lostPeers:
+				disconnectedNodes <- p 
+
+			case incommingMessage := <- recieve:
+				recievedMsg <- incommingMessage
+
+			case outboundMap := <- sendMap:
+				thisLift = outboundMap[myID]
+				message.ID = myID
+				message.NodeMap = outboundMap
+				send <- message
+				mapToCost <- outboundMap
+				liftToFsm <- thisLift
+				
+			case button := <- polledButton:
+				liftData := initializeLiftData()
+				liftData.Requests[button.Floor][button.Button] = true
+				localLift.Lift = liftData
+				localLift.Source = config.Button_Poll
+				liftToCompiler <- localLift
+
+			case floor := <- polledFloorSensor:
+				liftData := initializeLiftData()
+				liftData.LastKnownFloor = floor
+				localLift.Lift = liftData
+				localLift.Source = config.Floor_Poll
+				liftToCompiler <- localLift
+
+			case liftData := <- liftFromFsm:
+				localLift.Lift = liftData
+				localLift.Source = config.FSM
+				liftToCompiler <- localLift
+
+			case liftData := <- liftFromCost
+				localLift.Lift = liftData
+				localLift.Source = config.Cost
+				liftToCompiler <- localLift
+		}
+
 	}
 }
