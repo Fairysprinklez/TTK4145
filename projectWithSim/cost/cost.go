@@ -8,6 +8,8 @@ import "fmt"
 //different nodes by just choosing one where calculateCost is called. NB: calculateCost, can NOT be run concurrently
 
 //DISCLAIMER: ALL OF THIS IS CURRENTLY WIP
+var cabCalls []
+
 func requestsBelow(lift config.Lift) (bool, int) {
 	for f := 0; f < lift.LastKnownFloor; f++ {
 		for b := 0; b < config.NumButtons; b++ {
@@ -89,10 +91,10 @@ func calculateCostForAllNodes(nodeMapInCh chan config.NodeMap, thisLiftOutCh cha
 				}
 				sortedNextFloorSlice = append(sortedNextFloorSlice, calculateCost(lift, validRequests))
 				lastChars := id[len(id)-3:]
-				if idInt, err := strconv.Atoi(lastChars); err == nil {
+				/*if idInt, err := strconv.Atoi(lastChars); err == nil {
     				sortedIdSlice = append(sortedIdSlice, idInt)
     				//this should break if we can't find the idInt
-				}
+				}*/
 
 			}
 		}
