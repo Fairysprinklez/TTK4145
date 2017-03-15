@@ -60,6 +60,7 @@ func main() {
 	NodeMap = make(config.NodeMap)
 	NodeMap[ThisLift.ID] = thisLift
 
+	//network channels
 	send := make(chan config.Message)
 	recieve := make(chan config.Message)
 	lostPeers := make(chan []string)
@@ -119,7 +120,9 @@ func main() {
 				disconnectedNodes <- p 
 
 			case message := <- recieve:
-				recievedMsg <- message
+				if message.ID != myID {
+					recievedMsg <- message
+				}
 
 			case outboundMap := <- sendMap:
 				thisLift = outboundMap[myID]
