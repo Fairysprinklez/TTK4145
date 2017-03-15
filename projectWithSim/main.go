@@ -24,7 +24,7 @@ func initializeLiftData() config.Lift {
 			LastKnownFloor: -1,
 			TargetFloor: -1,
 			MotorDir: config.MD_Stop,
-			Behaviour: config.LiftIdle}
+			Behaviour: config.Lift}
 
 	}
 
@@ -40,20 +40,20 @@ func main() {
 	thisLift := initializeLiftData()
 	myID := thisLift.ID
 
-	/*//##### FSM Init #####
-	LiftToFsmCh :=make(chan config.Lift)
+	//##### FSM Init #####
 
-	LiftFromFsmCh :=make(chan config.Lift)
+	
 	if driver.GetFloorSensorSignal() == -1 {
-		fsm.FsmOnInitBetweenFloors(LiftToFsmCh)
+		thisLift = fsm.FsmOnInitBetweenFloors(thisLift)
+	}else {
+		thisLift = fsm.FamOnInitInFloor(thisLift)
 	}
 
-	go fsm.FsmLoop(LiftToFsmCh,LiftFromFsmCh)
-	//send to FSM
-	LiftToFsmCh <- ThisLift
-	//recieve from FSM
-	someLift := <- LiftFromFsmCh
-	*/
+	//##### Hardware Init #####
+	driver.Init(ET_Comedi)
+
+	
+
 
 	//Initialize maps like this:
 	var NodeMap config.NodeMap
@@ -88,6 +88,7 @@ func main() {
 	go nodeMapCompiler(recievedMsg, sendMap, liftToCompiler, disconnectedNodes)
 	go driver.PollButtons(polledButton)
 	go driver.PollFloorSensor(polledFloorSensor)
+	//go fsm.FsmLoop(LiftToFsmCh,LiftFromFsmCh)
 
 
 

@@ -6,18 +6,32 @@ import (
 	"time"
 )
 
-/*func FsmInit(lift config.Lift) {
-	//is this really necessary???
-	//behaviour is set in main.initializeLiftData
-}*/
 
-func FsmOnInitBetweenFloors(LiftCh chan config.Lift) {
-	thisLift := <-LiftCh
+func FsmOnInitBetweenFloors(lift config.Lift) (config.Lift) {
 	driver.SetMotorDirection(config.MD_Down)
-	thisLift.MotorDir = config.MD_Down
+	lift.MotorDir = config.MD_Down
 	thisLift.Behaviour = config.LiftMoving
-	LiftCh <- thisLift
+	for {
+		floor := driver.GetFloorSensorSignal()
+		if floor != -1 {
+			lift.LastKnownFloor = floor
+			driver.SetMotorDirection(config.MD_Stop)
+			lift.MotorDir = config.MD_Stop
+			lift.Behaviour = config.LiftIdle
+			return lift
+		}
+	}
+	
+}
 
+func FsmOnInitInFloor(lift  config.Lift) (config.Lift) {
+	floor := driver.GetFloorSensorSignal()
+	lift.LastKnownFloor = floor
+	driver.SetMotorDirection(config.MD_Stop)
+	lift.MotorDir = config.MD_Stop
+	lift.Behaviour = config.LiftIdle
+	return lift
+	
 }
 
 func FsmLoop(liftIn chan config.Lift, liftOut chan config.Lift) {
@@ -53,11 +67,9 @@ func FsmLoop(liftIn chan config.Lift, liftOut chan config.Lift) {
 			if thisLift.LastKnownFloor == thisLift.TargetFloor {
 				thisLift.Behaviour = config.LiftDoorOpen
 			}
-			//what if FsmOnInitBetweenFloor get's called?
 
 		case config.LiftIdle:
-			//The cost-function set's this Lift.MotorDir, we just pass it on to hardware
-			//could be something wonky here if MotorDir is 0, since it will set the hardware repeatedly
+
 			if(thisLift.TargetFloor > thisLift.LastKnownFloor && thisLift.TargetFloor != -1) {
 				thisLift.MotorDir = config.MD_Up
 			}else if (thisLift.TargetFloor > thisLift.LastKnownFloor && thisLift.TargetFloor != -1){

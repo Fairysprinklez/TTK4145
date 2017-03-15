@@ -10,7 +10,8 @@ const DoorOpenDuration int = 3 //seconds
 
 type LiftBehaviour int
 const (
-	LiftIdle = iota
+	LiftUninitialized = iota
+	LiftIdle
 	LiftDoorOpen
 	LiftMoving
 )
