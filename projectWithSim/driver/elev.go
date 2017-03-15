@@ -45,6 +45,18 @@ func GetObstructionSignal() int {
 	return int(C.elev_get_obstruction_signal())
 }
 
+func SetAllButtonLamps(lightMatrix [config.NumFloors][config.NumButtons]bool){
+	for f := 0; f < config.NumFloors; f++{
+		for b := 0; b < config.NumButtons; b++{
+			if lightMatrix[f][b] {
+				SetButtonLamp(b, f, 1)
+			}else{
+				SetButtonLamp(b, f, 0)
+			}
+		}
+	}
+}
+
 func PollButtons(receiver chan<- ButtonEvent) {
 
 	previous := make([][3]int, NumFloors)

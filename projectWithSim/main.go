@@ -40,20 +40,17 @@ func main() {
 	thisLift := initializeLiftData()
 	myID := thisLift.ID
 
-	/*//##### FSM Init #####
-	LiftToFsmCh :=make(chan config.Lift)
-
-	LiftFromFsmCh :=make(chan config.Lift)
+	//##### FSM Init #####
+	
 	if driver.GetFloorSensorSignal() == -1 {
-		fsm.FsmOnInitBetweenFloors(LiftToFsmCh)
+		thisLift = fsm.FsmOnInitBetweenFloors(thisLift)
+	} else {
+		thisLift = fsm.FamOnInitInfloor(thisLift)
 	}
 
-	go fsm.FsmLoop(LiftToFsmCh,LiftFromFsmCh)
-	//send to FSM
-	LiftToFsmCh <- ThisLift
-	//recieve from FSM
-	someLift := <- LiftFromFsmCh
-	*/
+	//###### Hardware Init #####
+	driver.Init(ET_Comedi)
+	
 
 	//Initialize maps like this:
 	var NodeMap config.NodeMap
@@ -82,14 +79,14 @@ func main() {
 	//COST channels
 	mapToCost := make(chan config.NodeMap)
 	liftFromCost := make(chan config.Lift)
+	finishedReadingMap := make(chan config.Lift)
 
 	//Starting threads
 	go network.Network(send, recieve, lostPeers)
 	go nodeMapCompiler(recievedMsg, sendMap, liftToCompiler, disconnectedNodes)
 	go driver.PollButtons(polledButton)
 	go driver.PollFloorSensor(polledFloorSensor)
-
-
+	//go fsm.FsmLoop(LiftToFsmCh,LiftFromFsmCh)
 
 	go func() {
 		test := config.Message{NodeMap, ThisLift.ID, 0}
@@ -118,7 +115,9 @@ func main() {
 				disconnectedNodes <- p 
 
 			case message := <- recieve:
-				recievedMsg <- message
+					if message.ID != myID {
+						recievedMsg <- message
+					}
 
 			case outboundMap := <- sendMap:
 				thisLift = outboundMap[myID]
@@ -126,6 +125,7 @@ func main() {
 				message.NodeMap = outboundMap
 				send <- message
 				mapToCost <- outboundMap
+				<- finishedReadingMap
 				liftToFsm <- thisLift
 				
 			case button := <- polledButton:
@@ -148,6 +148,7 @@ func main() {
 				liftToCompiler <- localLift
 
 			case liftData := <- liftFromCost
+				go driver.SetAllButtonLamps(liftData.Requests)
 				localLift.Lift = liftData
 				localLift.Source = config.Cost
 				liftToCompiler <- localLift
