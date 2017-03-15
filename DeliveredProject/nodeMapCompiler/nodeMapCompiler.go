@@ -24,6 +24,7 @@ func NodeMapCompiler(	recieveMessage <-chan config.Message,
 	thisLift := liftUpdate.Lift
 	myID = thisLift.ID
 	myMap[myID] = thisLift
+	sendMap <- myMap
 	
 	for{	
 
@@ -125,6 +126,7 @@ func NodeMapCompiler(	recieveMessage <-chan config.Message,
 						thisLift.TargetFloor = incomingLift.TargetFloor
 
 					}else if source == config.Button_Poll {
+						
 						for floor := 0; floor < config.NumFloors; floor++ {
 							for button := 0; button < config.NumButtons; button++{
 								if incomingLift.Requests[floor][button]{
@@ -139,6 +141,7 @@ func NodeMapCompiler(	recieveMessage <-chan config.Message,
 					}
 				}
 				if thisLift != myMap[myID] {
+					
 					myMap[myID] = thisLift
 					myMapChanged = true
 				}
@@ -163,6 +166,7 @@ func NodeMapCompiler(	recieveMessage <-chan config.Message,
 
 			if myMapChanged {
 				sendMap <- myMap
+				
 			}
 
 		}

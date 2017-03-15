@@ -24,12 +24,16 @@ import (
 	return lift
 }*/
 
-var test [2][]int
+var test []int
 //var test2 []int
 //var lifts []config.Lift
 func main() {
 
-	test = {[3,4,5},{2,6,7}}
+	test = append(test,2)
+	fmt.Println(test)
+	test = nil
+	fmt.Println(test)
+	test = append(test,1)
 	/*test = append(test, 2)
 	test2 = append(test2, 3)
 	test2 = append(test2, 4)

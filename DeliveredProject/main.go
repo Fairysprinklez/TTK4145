@@ -3,9 +3,11 @@ package main
 import (
 	"./config"
 	"./driver"
-	//"./fsm"
+	"./fsm"
 	"./network"
 	"./network/localip"
+	"./nodeMapCompiler"
+	"./targetFloorAssigner"
 	"fmt"
 	"time"
 	"os"
@@ -24,7 +26,7 @@ func initializeLiftData() config.Lift {
 			LastKnownFloor: -1,
 			TargetFloor: -1,
 			MotorDir: config.MD_Stop,
-			Behaviour: config.Lift}
+			Behaviour: config.LiftUninitialized}
 
 	}
 
@@ -37,41 +39,9 @@ var outboundMap config.NodeMap
 
 func main() {
 
-	thisLift := initializeLiftData()
-	myID := thisLift.ID
-
-	//##### FSM Init #####
-<<<<<<< HEAD
-
-	
-	if driver.GetFloorSensorSignal() == -1 {
-		thisLift = fsm.FsmOnInitBetweenFloors(thisLift)
-	}else {
-		thisLift = fsm.FamOnInitInFloor(thisLift)
-	}
-
 	//##### Hardware Init #####
-	driver.Init(ET_Comedi)
+	driver.Init(config.ET_Comedi)
 
-	
-
-=======
-	
-	if driver.GetFloorSensorSignal() == -1 {
-		thisLift = fsm.FsmOnInitBetweenFloors(thisLift)
-	} else {
-		thisLift = fsm.FamOnInitInfloor(thisLift)
-	}
-
-	//###### Hardware Init #####
-	driver.Init(ET_Comedi)
-	
->>>>>>> finalCountdown
-
-	//Initialize maps like this:
-	var NodeMap config.NodeMap
-	NodeMap = make(config.NodeMap)
-	NodeMap[ThisLift.ID] = thisLift
 
 	//network channels
 	send := make(chan config.Message)
@@ -94,65 +64,69 @@ func main() {
 	liftFromFsm := make(chan config.Lift)
 
 	//COST channels
-	mapToCost := make(chan config.NodeMap)
-	liftFromCost := make(chan config.Lift)
-	finishedReadingMap := make(chan config.Lift)
+	mapToTargetFloorAssigner := make(chan config.NodeMap)
+	liftFromTargetFloorAssigner := make(chan config.Lift)
+	finishedReadingMap := make(chan bool)
+
+
+	thisLift := initializeLiftData()
+	myID := thisLift.ID
+
+	//##### FSM Init #####
+	if driver.GetFloorSensorSignal() == -1 {
+		thisLift = fsm.FsmOnInitBetweenFloors(thisLift)
+	}else {
+		thisLift = fsm.FsmOnInitInFloor(thisLift)
+	}
 
 	//Starting threads
 	go network.Network(send, recieve, lostPeers)
-	go nodeMapCompiler(recievedMsg, sendMap, liftToCompiler, disconnectedNodes)
+	go nodeMapCompiler.NodeMapCompiler(recievedMsg, sendMap, liftToCompiler, disconnectedNodes)
 	go driver.PollButtons(polledButton)
 	go driver.PollFloorSensor(polledFloorSensor)
-	//go fsm.FsmLoop(LiftToFsmCh,LiftFromFsmCh)
-<<<<<<< HEAD
+	go fsm.FsmLoop(liftToFsm, liftFromFsm)
+	go targetFloorAssigner.TargetFloorAssigner(mapToTargetFloorAssigner, liftFromTargetFloorAssigner, finishedReadingMap, myID)
 
 
-=======
->>>>>>> finalCountdown
+	localLift.Lift = thisLift
+	localLift.Source = config.FSM
 
-	go func() {
-		test := config.Message{NodeMap, ThisLift.ID, 0}
-		for {
-			send <- test
-			test.Iter++
-			time.Sleep(1 * time.Second)
-			fmt.Println("sending")
-		}
+	
+
+	liftToCompiler <- localLift
+
+	
+
+	go func (){
+		sigs := make(chan os.Signal)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
+		fmt.Println("Rebooting process")
+		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run main.go")
+		backup.Run()
+		os.Exit(0)
 	}()
-
-	for {
-		select {
-		case p := <-lostPeers:
-			fmt.Println(p)
-		case r := <-recieve:
-			fmt.Println("recieved: ", r)
-		}
-	}
-
 
 	//Scetch of main loop
 	for{
+		
 		select{
 			case p := <-lostPeers:
 				disconnectedNodes <- p 
+				
 
 			case message := <- recieve:
-<<<<<<< HEAD
 				if message.ID != myID {
 					recievedMsg <- message
 				}
-=======
-					if message.ID != myID {
-						recievedMsg <- message
-					}
->>>>>>> finalCountdown
+				
 
 			case outboundMap := <- sendMap:
 				thisLift = outboundMap[myID]
 				message.ID = myID
 				message.NodeMap = outboundMap
 				send <- message
-				mapToCost <- outboundMap
+				mapToTargetFloorAssigner <- outboundMap
 				<- finishedReadingMap
 				liftToFsm <- thisLift
 				
@@ -162,6 +136,7 @@ func main() {
 				localLift.Lift = liftData
 				localLift.Source = config.Button_Poll
 				liftToCompiler <- localLift
+				
 
 			case floor := <- polledFloorSensor:
 				liftData := initializeLiftData()
@@ -170,28 +145,20 @@ func main() {
 				localLift.Source = config.Floor_Poll
 				liftToCompiler <- localLift
 
+
 			case liftData := <- liftFromFsm:
 				localLift.Lift = liftData
 				localLift.Source = config.FSM
 				liftToCompiler <- localLift
 
-			case liftData := <- liftFromCost
+			case liftData := <- liftFromTargetFloorAssigner:
 				go driver.SetAllButtonLamps(liftData.Requests)
 				localLift.Lift = liftData
 				localLift.Source = config.Cost
 				liftToCompiler <- localLift
+
 		}
+		time.Sleep(5*time.Millisecond)
 
 	}
-
-	//THIS MAKES THE ELEVATOR RESTART IF IT FUCKS UP
-	go func (){
-		sigs := make(chan os.Signal)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-		<-sigs
-		fmt.Println("I'm dying, will reincarnate")
-		backup := exec.Command("gnome-terminal", "-x", "sh", "-c", "go run reincarnate.go")
-		backup.Run()
-		os.Exit(0)
-	}()
 }

@@ -7,30 +7,30 @@ import (
 )
 
 
-func FsmOnInitBetweenFloors(lift config.Lift) (config.Lift) {
+func FsmOnInitBetweenFloors(thisLift config.Lift) (config.Lift) {
 	driver.SetMotorDirection(config.MD_Down)
-	lift.MotorDir = config.MD_Down
+	thisLift.MotorDir = config.MD_Down
 	thisLift.Behaviour = config.LiftMoving
 	for {
 		floor := driver.GetFloorSensorSignal()
 		if floor != -1 {
-			lift.LastKnownFloor = floor
+			thisLift.LastKnownFloor = floor
 			driver.SetMotorDirection(config.MD_Stop)
-			lift.MotorDir = config.MD_Stop
-			lift.Behaviour = config.LiftIdle
-			return lift
+			thisLift.MotorDir = config.MD_Stop
+			thisLift.Behaviour = config.LiftIdle
+			return thisLift
 		}
 	}
 	
 }
 
-func FsmOnInitInFloor(lift  config.Lift) (config.Lift) {
+func FsmOnInitInFloor(thisLift  config.Lift) (config.Lift) {
 	floor := driver.GetFloorSensorSignal()
-	lift.LastKnownFloor = floor
+	thisLift.LastKnownFloor = floor
 	driver.SetMotorDirection(config.MD_Stop)
-	lift.MotorDir = config.MD_Stop
-	lift.Behaviour = config.LiftIdle
-	return lift
+	thisLift.MotorDir = config.MD_Stop
+	thisLift.Behaviour = config.LiftIdle
+	return thisLift
 	
 }
 
@@ -64,7 +64,7 @@ func FsmLoop(liftIn chan config.Lift, liftOut chan config.Lift) {
 			}
 
 		case config.LiftMoving:
-			if thisLift.LastKnownFloor == thisLift.TargetFloor {
+			if (driver.GetFloorSensorSignal() == thisLift.TargetFloor) && (thisLift.TargetFloor != -1) {
 				thisLift.Behaviour = config.LiftDoorOpen
 			}
 

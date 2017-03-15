@@ -6,7 +6,6 @@ import (
 	"./localip"
 	"./peers"
 	"fmt"
-	"os"
 )
 
 func Network(messageTx chan config.Message, messageRx chan config.Message, lostPeers chan []string) {
@@ -16,7 +15,7 @@ func Network(messageTx chan config.Message, messageRx chan config.Message, lostP
 		fmt.Println(err)
 		localIP = "DISCONNECTED"
 	}
-	var ID string = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	var ID string = fmt.Sprintf(localIP)
 
 	peerUpdateCh := make(chan peers.PeerUpdate)
 
@@ -26,7 +25,6 @@ func Network(messageTx chan config.Message, messageRx chan config.Message, lostP
 
 	go bcast.Transmitter(20088, messageTx)
 	go bcast.Receiver(20088, messageRx)
-	fmt.Println("started network")
 
 	for {
 		p := <-peerUpdateCh
